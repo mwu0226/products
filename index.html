@@ -105,6 +105,21 @@
 
         displayProducts(filtered);
     }
+function filterProducts() {
+    let searchQuery = document.getElementById("searchBox").value.toLowerCase();
+    let selectedCategory = document.getElementById("categoryFilter").value;
+
+    let filtered = allProducts.filter(product => {
+        return (
+            (product.title.toLowerCase().includes(searchQuery) || 
+             product.body.toLowerCase().includes(searchQuery) || 
+             product.category.toLowerCase().includes(searchQuery)) &&
+            (selectedCategory === "" || product.category === selectedCategory)
+        );
+    });
+
+    displayProducts(filtered);
+}
 
     function formatMarkdown(text) {
         return text
