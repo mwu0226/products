@@ -3,113 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>产品展示</title>
+    <title>商品展示</title>
     <style>
-        body { font-family: Arial, sans-serif; }
-        .product { border: 1px solid #ddd; padding: 10px; margin: 10px; display: inline-block; width: 200px; vertical-align: top; }
-        .carousel img { width: 100%; display: none; }
-        .carousel img.active { display: block; }
-        .carousel-btn { cursor: pointer; }
-        .category { font-size: 20px; font-weight: bold; margin-top: 20px; }
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #searchBox {
+            margin-bottom: 20px;
+        }
+        .product {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px;
+            border-radius: 5px;
+        }
+        .product img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
-    <h1>产品展示</h1>
-    <input type="text" id="searchBox" placeholder="搜索产品..." onkeyup="searchProducts()">
+    <h1>商品列表</h1>
+
+    <!-- 搜索框 -->
+    <input type="text" id="searchBox" placeholder="输入关键词搜索..." oninput="filterProducts()">
+
+    <!-- 分类筛选 -->
+    <select id="categoryFilter" onchange="filterProducts()">
+        <option value="">所有类别</option>
+        <option value="鞋子">鞋子</option>
+        <option value="衣服">衣服</option>
+        <option value="饰品">饰品</option>
+    </select>
+
     <div id="productList"></div>
 
     <script>
-        let productsData = [];
+    let allProducts = [];
 
-        async function fetchProducts() {
-            const response = await fetch("https://api.github.com/repos/你的用户名/my-products/issues");
-            const issues = await response.json();
+    async function fetchProducts() {
+        const response = await fetch("https://api.github.com/repos/mwu0226/special-offer/issues");
+        const issues = await response.json();
 
-            productsData = issues.map(issue => {
-                const body = issue.body;
-                const nameMatch = body.match(/\*\*名称\*\*: (.+)/);
-                const priceMatch = body.match(/\*\*价格\*\*: (.+)/);
-                const categoryMatch = body.match(/\*\*分类\*\*: (.+)/);
-                const images = (issue.body.match(/!\[.*?\]\((.*?)\)/g) || []).map(img => img.match(/\((.*?)\)/)[1]);
+        allProducts = issues.map(issue => {
+            return {
+                title: issue.title,
+                body: issue.body,
+                images: extractImages(issue.body),
+                category: extractCategory(issue.body)
+            };
+        });
 
-                return {
-                    name: nameMatch ? nameMatch[1] : "未知产品",
-                    price: priceMatch ? priceMatch[1] : "价格未定",
-                    category: categoryMatch ? categoryMatch[1] : "未分类",
-                    images: images
-                };
-            });
+        displayProducts(allProducts);
+    }
 
-            renderProducts(productsData);
-        }
+    function extractCategory(text) {
+        const match = text.match(/\*\*分类\*\*:\s*(.*)/);
+        return match ? match[1].trim() : "未分类";
+    }
 
-        function renderProducts(products) {
-            let productList = document.getElementById("productList");
-            productList.innerHTML = "";
+    function extractImages(text) {
+        const matches = [...text.matchAll(/!\[.*?\]\((.*?)\)/g)];
+        return matches.map(match => match[1]);
+    }
 
-            let categories = {}; // 用于存储按分类分组的产品
+    function displayProducts(products) {
+        let productList = document.getElementById("productList");
+        productList.innerHTML = "";
 
-            products.forEach((product, index) => {
-                if (!categories[product.category]) {
-                    categories[product.category] = [];
-                }
-                categories[product.category].push({ product, index });
-            });
+        products.forEach(product => {
+            let div = document.createElement("div");
+            div.className = "product";
 
-            Object.keys(categories).forEach(category => {
-                let categoryDiv = document.createElement("div");
-                categoryDiv.className = "category";
-                categoryDiv.innerText = category;
-                productList.appendChild(categoryDiv);
+            let imagesHTML = product.images.map(img => `<img src="${img}" alt="商品图片">`).join("");
 
-                categories[category].forEach(({ product, index }) => {
-                    let div = document.createElement("div");
-                    div.className = "product";
-                    div.setAttribute("data-name", product.name);
-                    div.setAttribute("data-category", product.category);
+            div.innerHTML = `
+                <h3>${product.title}</h3>
+                <p>${formatMarkdown(product.body)}</p>
+                <b>分类:</b> ${product.category} <br>
+                ${imagesHTML}
+            `;
 
-                    let imgHtml = product.images.map((img, idx) => 
-                        `<img src="${img}" class="${idx === 0 ? 'active' : ''}">`).join("");
+            productList.appendChild(div);
+        });
+    }
 
-                    div.innerHTML = `
-                        <h3>${product.name}</h3>
-                        <p>价格: ${product.price}</p>
-                        <p>分类: ${product.category}</p>
-                        <div class="carousel" id="carousel-${index}">
-                            ${imgHtml}
-                            <button class="carousel-btn prev" onclick="prevImage(${index})">◀</button>
-                            <button class="carousel-btn next" onclick="nextImage(${index})">▶</button>
-                        </div>
-                    `;
-                    productList.appendChild(div);
-                });
-            });
-        }
+    function filterProducts() {
+        let searchQuery = document.getElementById("searchBox").value.toLowerCase();
+        let selectedCategory = document.getElementById("categoryFilter").value;
 
-        function searchProducts() {
-            let query = document.getElementById("searchBox").value.toLowerCase();
-            let filteredProducts = productsData.filter(product =>
-                product.name.toLowerCase().includes(query) ||
-                product.category.toLowerCase().includes(query)
+        let filtered = allProducts.filter(product => {
+            return (
+                (product.title.toLowerCase().includes(searchQuery) || product.body.toLowerCase().includes(searchQuery)) &&
+                (selectedCategory === "" || product.category === selectedCategory)
             );
-            renderProducts(filteredProducts);
-        }
+        });
 
-        function prevImage(index) {
-            let images = document.querySelectorAll(`#carousel-${index} img`);
-            let activeIndex = [...images].findIndex(img => img.classList.contains('active'));
-            images[activeIndex].classList.remove('active');
-            images[(activeIndex - 1 + images.length) % images.length].classList.add('active');
-        }
+        displayProducts(filtered);
+    }
 
-        function nextImage(index) {
-            let images = document.querySelectorAll(`#carousel-${index} img`);
-            let activeIndex = [...images].findIndex(img => img.classList.contains('active'));
-            images[activeIndex].classList.remove('active');
-            images[(activeIndex + 1) % images.length].classList.add('active');
-        }
+    function formatMarkdown(text) {
+        return text
+            .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>") // 解析加粗
+            .replace(/\n/g, "<br>"); // 解析换行
+    }
 
-        fetchProducts();
+    fetchProducts();
     </script>
 </body>
 </html>
