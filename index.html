@@ -7,15 +7,19 @@
     <style>
         body {
             font-family: Arial, sans-serif;
+            margin: 20px;
         }
-        #searchBox {
-            margin-bottom: 20px;
+        #searchBox, #categoryFilter {
+            margin-bottom: 10px;
+            padding: 5px;
+            width: 200px;
         }
         .product {
             border: 1px solid #ddd;
             padding: 10px;
-            margin: 10px;
+            margin: 10px 0;
             border-radius: 5px;
+            background: #f9f9f9;
         }
         .product img {
             max-width: 100%;
@@ -46,19 +50,31 @@
     let allProducts = [];
 
     async function fetchProducts() {
-        const response = await fetch("https://api.github.com/repos/mwu0226/special-offer/issues");
-        const issues = await response.json();
+        try {
+            const response = await fetch("https://api.github.com/repos/mwu0226/special-offer/issues", {
+                headers: { "Accept": "application/vnd.github.v3+json" }
+            });
 
-        allProducts = issues.map(issue => {
-            return {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const issues = await response.json();
+            if (!issues.length) {
+                console.warn("⚠️ No issues found. Make sure you have created public issues.");
+            }
+
+            allProducts = issues.map(issue => ({
                 title: issue.title,
                 body: issue.body,
                 images: extractImages(issue.body),
                 category: extractCategory(issue.body)
-            };
-        });
+            }));
 
-        displayProducts(allProducts);
+            displayProducts(allProducts);
+        } catch (error) {
+            console.error("❌ Error fetching GitHub Issues:", error);
+        }
     }
 
     function extractCategory(text) {
@@ -79,7 +95,9 @@
             let div = document.createElement("div");
             div.className = "product";
 
-            let imagesHTML = product.images.map(img => `<img src="${img}" alt="商品图片">`).join("");
+            let imagesHTML = product.images.length > 0 
+                ? product.images.map(img => `<img src="${img}" alt="商品图片">`).join("")
+                : "<p>暂无图片</p>";
 
             div.innerHTML = `
                 <h3>${product.title}</h3>
@@ -98,43 +116,15 @@
 
         let filtered = allProducts.filter(product => {
             return (
-                (product.title.toLowerCase().includes(searchQuery) || product.body.toLowerCase().includes(searchQuery)) &&
+                (product.title.toLowerCase().includes(searchQuery) || 
+                 product.body.toLowerCase().includes(searchQuery) || 
+                 product.category.toLowerCase().includes(searchQuery)) &&
                 (selectedCategory === "" || product.category === selectedCategory)
             );
         });
 
         displayProducts(filtered);
     }
-function filterProducts() {
-    let searchQuery = document.getElementById("searchBox").value.toLowerCase();
-    let selectedCategory = document.getElementById("categoryFilter").value;
-
-    let filtered = allProducts.filter(product => {
-        return (
-            (product.title.toLowerCase().includes(searchQuery) || 
-             product.body.toLowerCase().includes(searchQuery) || 
-             product.category.toLowerCase().includes(searchQuery)) &&
-            (selectedCategory === "" || product.category === selectedCategory)
-        );
-    });
-
-    displayProducts(filtered);
-}
-function filterProducts() {
-    let searchQuery = document.getElementById("searchBox").value.toLowerCase();
-    let selectedCategory = document.getElementById("categoryFilter").value;
-
-    let filtered = allProducts.filter(product => {
-        return (
-            (product.title.toLowerCase().includes(searchQuery) || 
-             product.body.toLowerCase().includes(searchQuery) || 
-             product.category.toLowerCase().includes(searchQuery)) &&
-            (selectedCategory === "" || product.category === selectedCategory)
-        );
-    });
-
-    displayProducts(filtered);
-}
 
     function formatMarkdown(text) {
         return text
