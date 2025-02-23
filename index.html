@@ -30,11 +30,13 @@
                 const body = issue.body;
                 const nameMatch = body.match(/\*\*名称\*\*: (.+)/);
                 const priceMatch = body.match(/\*\*价格\*\*: (.+)/);
+                const categoryMatch = body.match(/\*\*分类\*\*: (.+)/);
                 const images = (issue.body.match(/!\[.*?\]\((.*?)\)/g) || []).map(img => img.match(/\((.*?)\)/)[1]);
 
                 return {
                     name: nameMatch ? nameMatch[1] : "未知产品",
                     price: priceMatch ? priceMatch[1] : "价格未定",
+                    category: categoryMatch ? categoryMatch[1] : "未分类",
                     images: images
                 };
             });
@@ -50,6 +52,7 @@
                 let div = document.createElement("div");
                 div.className = "product";
                 div.setAttribute("data-name", product.name);
+                div.setAttribute("data-category", product.category);
 
                 let imgHtml = product.images.map((img, idx) => 
                     `<img src="${img}" class="${idx === 0 ? 'active' : ''}">`).join("");
@@ -57,6 +60,7 @@
                 div.innerHTML = `
                     <h3>${product.name}</h3>
                     <p>价格: ${product.price}</p>
+                    <p>分类: ${product.category}</p>
                     <div class="carousel" id="carousel-${index}">
                         ${imgHtml}
                         <button class="carousel-btn prev" onclick="prevImage(${index})">◀</button>
@@ -70,7 +74,8 @@
         function searchProducts() {
             let query = document.getElementById("searchBox").value.toLowerCase();
             let filteredProducts = productsData.filter(product =>
-                product.name.toLowerCase().includes(query)
+                product.name.toLowerCase().includes(query) ||
+                product.category.toLowerCase().includes(query)
             );
             renderProducts(filteredProducts);
         }
