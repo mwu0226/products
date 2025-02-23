@@ -10,6 +10,7 @@
         .carousel img { width: 100%; display: none; }
         .carousel img.active { display: block; }
         .carousel-btn { cursor: pointer; }
+        .category { font-size: 20px; font-weight: bold; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -46,26 +47,42 @@
             let productList = document.getElementById("productList");
             productList.innerHTML = "";
 
+            let categories = {}; // 用于存储按分类分组的产品
+
             products.forEach((product, index) => {
-                let div = document.createElement("div");
-                div.className = "product";
-                div.setAttribute("data-name", product.name);
-                div.setAttribute("data-category", product.category);
+                if (!categories[product.category]) {
+                    categories[product.category] = [];
+                }
+                categories[product.category].push({ product, index });
+            });
 
-                let imgHtml = product.images.map((img, idx) => 
-                    `<img src="${img}" class="${idx === 0 ? 'active' : ''}">`).join("");
+            Object.keys(categories).forEach(category => {
+                let categoryDiv = document.createElement("div");
+                categoryDiv.className = "category";
+                categoryDiv.innerText = category;
+                productList.appendChild(categoryDiv);
 
-                div.innerHTML = `
-                    <h3>${product.name}</h3>
-                    <p>价格: ${product.price}</p>
-                    <p>分类: ${product.category}</p>
-                    <div class="carousel" id="carousel-${index}">
-                        ${imgHtml}
-                        <button class="carousel-btn prev" onclick="prevImage(${index})">◀</button>
-                        <button class="carousel-btn next" onclick="nextImage(${index})">▶</button>
-                    </div>
-                `;
-                productList.appendChild(div);
+                categories[category].forEach(({ product, index }) => {
+                    let div = document.createElement("div");
+                    div.className = "product";
+                    div.setAttribute("data-name", product.name);
+                    div.setAttribute("data-category", product.category);
+
+                    let imgHtml = product.images.map((img, idx) => 
+                        `<img src="${img}" class="${idx === 0 ? 'active' : ''}">`).join("");
+
+                    div.innerHTML = `
+                        <h3>${product.name}</h3>
+                        <p>价格: ${product.price}</p>
+                        <p>分类: ${product.category}</p>
+                        <div class="carousel" id="carousel-${index}">
+                            ${imgHtml}
+                            <button class="carousel-btn prev" onclick="prevImage(${index})">◀</button>
+                            <button class="carousel-btn next" onclick="nextImage(${index})">▶</button>
+                        </div>
+                    `;
+                    productList.appendChild(div);
+                });
             });
         }
 
